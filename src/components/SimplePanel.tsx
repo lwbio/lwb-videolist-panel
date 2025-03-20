@@ -1,11 +1,10 @@
 import React, {useState} from 'react';
-import { PanelProps } from '@grafana/data';
+import { PanelProps, PanelData } from '@grafana/data';
 import { SimpleOptions, VideoProps } from 'types';
 import { css, cx } from '@emotion/css';
 import { useStyles2 } from '@grafana/ui';
 import { PanelDataErrorView } from '@grafana/runtime';
-import { Modal } from 'antd';
-import { Col, Row } from 'antd';
+import { Col, Row, Modal } from 'antd';
 
 interface Props extends PanelProps<SimpleOptions> {}
 
@@ -34,12 +33,12 @@ const getStyles = () => {
   };
 };
 
-function extractVideos(data: any): VideoProps[] {
+function extractVideos(data: PanelData, prefix: string): VideoProps[] {
   const videoInfo: VideoProps[] = [];
-  const series = data?.series ?? [];
+  const series = data.series ?? [];
 
   for (const serie of series) {
-    const fields = serie?.fields ?? [];
+    const fields = serie.fields ?? [];
     const valuesMap: Record<string, any[]> = {};
 
     // 将所有字段值存入 valuesMap
@@ -59,8 +58,8 @@ function extractVideos(data: any): VideoProps[] {
         videoInfo.push({
           id: valuesMap["id"][i],
           title: valuesMap["title"][i],
-          thumbnail: valuesMap["thumbnail"][i],
-          url: valuesMap["url"][i],
+          thumbnail: prefix + valuesMap["thumbnail"][i],
+          url: prefix + valuesMap["url"][i],
           description: valuesMap["description"][i],
         });
       }
@@ -71,28 +70,14 @@ function extractVideos(data: any): VideoProps[] {
 }
 
 export const SimplePanel: React.FC<Props> = ({ options, data, width, height, fieldConfig, id }) => {
-  // const theme = useTheme2();
   const styles = useStyles2(getStyles);
+  const [currentVideo, setCurrentVideo] = useState<VideoProps | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // const videoTemplate = {
-  //   id: 1, 
-  //   title: 'Video 1', 
-  //   url: 'https://lwbio.oss-cn-shenzhen.aliyuncs.com/picgo/202503181656359.mp4',
-  //   thumbnail: 'https://lwbio.oss-cn-shenzhen.aliyuncs.com/picgo/202503190320344.jpeg',
-  //   description: 'This is a video description'
-  // }
-  // const videos = []
-  // for (let i = 0; i < 100; i++) {
-  //   videos.push({...videoTemplate, id: i + 1, title: `Video ${i +
-  //     1}`, description: `This is video ${i + 1}`})
-  // }
-  const videos = extractVideos(data);
+  const videos = extractVideos(data, options.staticPrefix);
   if (videos.length === 0) {
     return <PanelDataErrorView fieldConfig={fieldConfig} panelId={id} data={data} needsStringField />;
   }
-
-  const [currentVideo, setCurrentVideo] = useState<VideoProps | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleVideoChange = (video: VideoProps) => {
     setCurrentVideo(video);
@@ -108,7 +93,7 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, fie
     <div className={cx(styles.wrapper)}>
       <Row gutter={{ xs: 8, sm: 16, md: 24, lg: 32 }}>
         {videos.map((video) => (
-          <Col className="gutter-row" span={4}>
+          <Col key={video.id} className="gutter-row" span={4}>
             <div key={video.id} onClick={() => handleVideoChange(video)}>
                 <img src={video.thumbnail} alt={video.title} width="100%" height="100%" />
                 <p>{video.title}</p>
